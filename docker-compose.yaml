@@ -26,6 +26,7 @@ services:
       - media:/data/media
     depends_on:
       - admin_panel
+      - api
     ports:
       - "80:80"
     networks:
@@ -102,6 +103,35 @@ services:
       - ./.env
     networks:
       - app_network
+  redis:
+    image: redis:8.2-alpine
+    restart: always
+    expose:
+      - "6379"
+    volumes:
+      - redis_data:/redis_data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+  api:
+    build: ./async_api
+    container_name: api
+    restart: always
+    volumes:
+      - ./async_api:/app/
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./.env
+    networks:
+      - app_network
 
 networks:
   app_network:
@@ -112,3 +142,4 @@ volumes:
   media:
   postgres_data:
   elasticsearch_data:
+  redis_data:
