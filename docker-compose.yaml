@@ -43,6 +43,63 @@ services:
     volumes:
       - ./admin_panel/database_dump.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app_network
+
+  elasticsearch:
+    image: elasticsearch:9.1.5
+    container_name: elastic
+    restart: always
+    expose:
+      - "9200"
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+
+  init-elastic:
+    image: curlimages/curl:latest
+    container_name: elastic_init
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./etl_service/init-elastic.sh:/scripts/init-elastic.sh
+    command: > 
+      sh -c "chmod +x /scripts/*.sh && /scripts/init-elastic.sh"
+    env_file:
+      - ./.env
+    networks:
+      - app_network
+
+  etl:
+    build: ./etl_service
+    container_name: etl
+    restart: always
+    depends_on:
+      cinema_db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      init-elastic:
+        condition: service_completed_successfully
+    env_file:
+      - ./.env
     networks:
       - app_network
 
@@ -54,3 +111,4 @@ volumes:
   static:
   media:
   postgres_data:
+  elasticsearch_data:
