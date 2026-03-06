@@ -53,7 +53,7 @@ services:
     networks:
       - app_network
 
-  elasticsearch:
+  elastic:
     image: elasticsearch:9.1.5
     container_name: elastic
     restart: always
@@ -64,6 +64,8 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_HEAP_SIZE=512m"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     healthcheck:
@@ -78,7 +80,7 @@ services:
     image: curlimages/curl:latest
     container_name: elastic_init
     depends_on:
-      elasticsearch:
+      elastic:
         condition: service_healthy
     volumes:
       - ./etl_service/init-elastic.sh:/scripts/init-elastic.sh
@@ -96,7 +98,7 @@ services:
     depends_on:
       cinema_db:
         condition: service_healthy
-      elasticsearch:
+      elastic:
         condition: service_healthy
       init-elastic:
         condition: service_completed_successfully
@@ -126,7 +128,7 @@ services:
     volumes:
       - ./async_api:/app/
     depends_on:
-      elasticsearch:
+      elastic:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -151,6 +153,8 @@ services:
   ugc:
     build: ./ugc_service
     container_name: ugc
+    env_file:
+      - ./.env
     volumes:
       - ./ugc_service:/opt/app
     networks:
@@ -175,7 +179,7 @@ services:
     ports:
       - "5601:5601"
     depends_on:
-      - elasticsearch
+      - elastic
     volumes:
       - kibana_data:/usr/share/kibana/data
     networks:
@@ -187,10 +191,10 @@ services:
     image: logstash:8.10.2
     container_name: logstash
     depends_on:
-      - elasticsearch
+      - elastic
     environment:
       XPACK_MONITORING_ENABLED: "false"
-      ES_HOST: "elasticsearch:9200"
+      ES_HOST: "elastic:9200"
     ports:
       - "5044:5044"
       - "5045:5045"
@@ -199,6 +203,83 @@ services:
     volumes:
       - ./ugc_service/logstash.conf:/config/logstash.conf:ro
     command: logstash -f /config/logstash.conf
+
+  kafka:
+    image: apache/kafka:4.1.1
+    container_name: kafka
+    restart: always
+    expose:
+      - "9094"
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_NODE_ID=0
+      - KAFKA_KRAFT_CLUSTER_ID=abcdefghijklmnopqrstuv
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://kafka:9094
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+    networks:
+      - app_network
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "9092" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+    volumes:
+      - kafka_0_data:/bitnami/kafka
+
+  ui:
+    image: provectuslabs/kafka-ui:v0.7.0
+    container_name: kafka_ui
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kafka
+    networks:
+      - app_network
+    environment:
+      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_NAME=kraft
+  notification:
+    build: ./notification_service/src
+    container_name: notification
+    env_file:
+      - ./.env
+    volumes:
+      - ./notification_service/src:/opt/app
+    depends_on:
+      - mongodb
+    networks:
+      - app_network
+  worker:
+    build: ./notification_service/worker
+    container_name: worker
+    restart: always
+    env_file:
+      - ./.env
+    volumes:
+      - ./notification_service/worker:/opt/app
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - app_network
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - app_network
 
 networks:
   app_network:
@@ -212,3 +293,4 @@ volumes:
   redis_data:
   mongo_db:
   kibana_data:
+  kafka_0_data:

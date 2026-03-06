@@ -22,7 +22,7 @@ async def lifespan(_: FastAPI):
             integrations=[FastApiIntegration()],
             send_default_pii=True
         )
-    client = AsyncIOMotorClient(settings.database_url)
+    client = AsyncIOMotorClient(settings.database_mongo_url)
     await init_beanie(database=client.db_name, document_models=[Like, Favorite, Review])
     yield
     client.close()

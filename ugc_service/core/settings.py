@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     elastic_schema: str = 'http'
     app_start_method: str = 'main:app'
     app_host: str = '0.0.0.0'
-    database_url: str = Field(default="mongodb://mongodb:27017")
+    database_mongo_url: str = Field(default="mongodb://mongodb:27017")
     secret_key: str = "your-super-secret-key"
     algorithm: str = "HS256"
 
