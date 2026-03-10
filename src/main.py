@@ -1,49 +1,80 @@
-import asyncio
-import websockets
+# main.py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from routes import rooms_router, ws_router
+import uvicorn
 
-peoples = {}  # Словарь будет содержать ник подключившегося человека и указатель на его websocket-соединение.
+app = FastAPI(title="Кино вместе API", version="1.0.0")
 
-async def welcome(websocket: websockets.ServerConnection) -> str:
-    # При подключении к серверу попросим указать свой ник и пополним им словарь peoples
-    await websocket.send('Представьтесь!')
-    name = await websocket.recv()
-    await websocket.send('Чтобы поговорить, напишите "<имя>: <сообщение>". Например: Ира: купи хлеб.')
-    await websocket.send('Посмотреть список участников можно командой "?"')
-    peoples[name.strip()] = websocket
-    return name
+# Настройка CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "*"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-async def receiver(websocket: websockets.ServerConnection) -> None:
-    name = await welcome(websocket)
-    try:
-        while True:
-            # Получаем сообщение от абонента и решаем, что с ним делать
-            message = (await websocket.recv()).strip()
-            if message == '?':  # На знак вопроса вернём список ников подключившихся людей
-                await websocket.send(', '.join(peoples.keys()))
-                continue
-            else:  # Остальные сообщения попытаемся проанализировать и отправить нужному собеседнику
-                try:
-                    to, text = message.split(': ', 1)
-                    if to in peoples:
-                        # Пересылаем сообщение в канал получателя, указав отправителя
-                        await peoples[to].send(f'Сообщение от {name}: {text}')
-                    else:
-                        await websocket.send(f'Пользователь {to} не найден')
-                except ValueError:
-                    await websocket.send('Неверный формат сообщения. Используйте "имя: сообщение"')
-    except websockets.exceptions.ConnectionClosed:
-        # Удаляем пользователя при отключении
-        if name in peoples:
-            del peoples[name]
-        print(f"Пользователь {name} отключился")
+# Подключаем роутеры
+app.include_router(rooms_router)
+app.include_router(ws_router)
 
-async def main():
-    # Создаём сервер, который будет обрабатывать подключения
-    async with websockets.serve(receiver, "localhost", 8765, origins=None):
-        print("WebSocket сервер запущен на ws://localhost:8765")
-        print("Ожидание подключений...")
-        # Бесконечно держим сервер запущенным
-        await asyncio.Future()  # Работает как loop.run_forever()
 
-if __name__ == '__main__':
-    asyncio.run(main())
+@app.get("/")
+async def root():
+    return {"message": "Кино вместе API", "status": "running"}
+
+
+@app.get("/api/health")
+async def health_check():
+    return {"status": "healthy"}
+
+
+@app.on_event("startup")
+async def startup_event():
+    print("\n" + "=" * 60)
+    print("🚀 Сервер запущен!")
+    print("=" * 60)
+    print("\n📋 Доступные эндпоинты:")
+    print("-" * 40)
+
+    http_routes = []
+    ws_routes = []
+
+    for route in app.routes:
+        if hasattr(route, 'methods'):
+            methods = ",".join(route.methods)
+            http_routes.append(f"  🔷 {route.path:35} [{methods}]")
+        else:
+            ws_routes.append(f"  🔶 {route.path} [WEBSOCKET]")
+
+    # Сортируем и выводим HTTP маршруты
+    for route in sorted(http_routes):
+        print(route)
+
+    # Выводим WebSocket маршруты
+    if ws_routes:
+        print("\n  WebSocket маршруты:")
+        for route in ws_routes:
+            print(route)
+
+    print("-" * 40)
+    print(f"\n🌐 HTTP:  http://localhost:8000")
+    print(f"🔌 WebSocket: ws://localhost:8000")
+    print(f"📚 Документация: http://localhost:8000/docs")
+    print("=" * 60 + "\n")
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )

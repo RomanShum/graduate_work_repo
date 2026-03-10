@@ -3,3 +3,4 @@
 __pycache__
 *.mo
 .env
+node_modules

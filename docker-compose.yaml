@@ -1,22 +1,6 @@
 version: '3.9'
 
 services:
-  admin_panel:
-    container_name: admin_panel
-    build: ./admin_panel/
-    expose:
-      - "8000"
-    depends_on:
-      - cinema_db
-    env_file:
-      - ./.env
-    networks:
-      - app_network
-    volumes:
-      - static:/opt/app/static
-      - media:/opt/app/media
-      - ./admin_panel:/opt/app
-
   nginx:
     image: nginx:latest
     container_name: nginx
@@ -26,8 +10,8 @@ services:
       - static:/data/static
       - media:/data/media
     depends_on:
-      - admin_panel
       - api
+      - ws_app
     ports:
       - "80:80"
     networks:
@@ -43,67 +27,13 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./admin_panel/database_dump.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./configs/database_dump.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
       interval: 5s
       timeout: 5s
       retries: 10
-    networks:
-      - app_network
-
-  elastic:
-    image: elasticsearch:9.1.5
-    container_name: elastic
-    restart: always
-    expose:
-      - "9200"
-    ports:
-      - "9200:9200"
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "ES_HEAP_SIZE=512m"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-    healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - app_network
-
-  init-elastic:
-    image: curlimages/curl:latest
-    container_name: elastic_init
-    depends_on:
-      elastic:
-        condition: service_healthy
-    volumes:
-      - ./etl_service/init-elastic.sh:/scripts/init-elastic.sh
-    command: > 
-      sh -c "chmod +x /scripts/*.sh && /scripts/init-elastic.sh"
-    env_file:
-      - ./.env
-    networks:
-      - app_network
-
-  etl:
-    build: ./etl_service
-    container_name: etl
-    restart: always
-    depends_on:
-      cinema_db:
-        condition: service_healthy
-      elastic:
-        condition: service_healthy
-      init-elastic:
-        condition: service_completed_successfully
-    env_file:
-      - ./.env
     networks:
       - app_network
   redis:
@@ -128,8 +58,6 @@ services:
     volumes:
       - ./async_api:/app/
     depends_on:
-      elastic:
-        condition: service_healthy
       redis:
         condition: service_healthy
     env_file:
@@ -173,37 +101,6 @@ services:
     networks:
       - app_network
 
-  kibana:
-    image: kibana:9.1.5
-    container_name: kibana
-    ports:
-      - "5601:5601"
-    depends_on:
-      - elastic
-    volumes:
-      - kibana_data:/usr/share/kibana/data
-    networks:
-      - app_network
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elastic:9200
-
-  logstash:
-    image: logstash:8.10.2
-    container_name: logstash
-    depends_on:
-      - elastic
-    environment:
-      XPACK_MONITORING_ENABLED: "false"
-      ES_HOST: "elastic:9200"
-    ports:
-      - "5044:5044"
-      - "5045:5045"
-    networks:
-      - app_network
-    volumes:
-      - ./ugc_service/logstash.conf:/config/logstash.conf:ro
-    command: logstash -f /config/logstash.conf
-
   kafka:
     image: apache/kafka:4.1.1
     container_name: kafka
@@ -236,18 +133,6 @@ services:
     volumes:
       - kafka_0_data:/bitnami/kafka
 
-  ui:
-    image: provectuslabs/kafka-ui:v0.7.0
-    container_name: kafka_ui
-    ports:
-      - "8080:8080"
-    depends_on:
-      - kafka
-    networks:
-      - app_network
-    environment:
-      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka:9092
-      - KAFKA_CLUSTERS_0_NAME=kraft
   notification:
     build: ./notification_service/src
     container_name: notification
@@ -272,12 +157,18 @@ services:
         condition: service_healthy
     networks:
       - app_network
-  mailhog:
-    image: mailhog/mailhog
-    container_name: mailhog
+  ws_app:
+    build: ./src
+    container_name: ws_app
     ports:
-      - "8025:8025"
-      - "1025:1025"
+      - "8000:8000"
+    env_file:
+      - ./.env
+    volumes:
+      - static:/opt/app/static
+      - ./src:/opt/app
+    depends_on:
+      - cinema_db
     networks:
       - app_network
 
@@ -289,8 +180,6 @@ volumes:
   static:
   media:
   postgres_data:
-  elasticsearch_data:
   redis_data:
   mongo_db:
-  kibana_data:
   kafka_0_data:
