@@ -1,11 +1,11 @@
 // src/api/rooms.js
 import apiClient from './client';
 
-export const createRoom = async (username) => {
+export const createRoom = async (filmId) => {
   try {
-    console.log('📝 Creating room for user:', username);
+    console.log('📝 Creating room for film:', filmId);
     const response = await apiClient.post('/api/rooms', null, {
-      params: { creator: username }
+      params: { film_id: filmId }
     });
     return response.data;
   } catch (error) {
@@ -14,12 +14,10 @@ export const createRoom = async (username) => {
   }
 };
 
-export const joinRoom = async (roomId, username) => {
+export const joinRoom = async (roomId) => {
   try {
-    console.log('📝 Joining room:', roomId, 'as:', username);
-    const response = await apiClient.post(`/api/rooms/${roomId}/join`, null, {
-      params: { username }
-    });
+    console.log('📝 Joining room:', roomId);
+    const response = await apiClient.post(`/api/rooms/${roomId}/join`);
     return response.data;
   } catch (error) {
     console.error('❌ Error joining room:', error);
@@ -27,11 +25,9 @@ export const joinRoom = async (roomId, username) => {
   }
 };
 
-export const leaveRoom = async (roomId, username) => {
+export const leaveRoom = async (roomId) => {
   try {
-    const response = await apiClient.post(`/api/rooms/${roomId}/leave`, null, {
-      params: { username }
-    });
+    const response = await apiClient.post(`/api/rooms/${roomId}/leave`);
     return response.data;
   } catch (error) {
     console.error('❌ Error leaving room:', error);
@@ -59,10 +55,10 @@ export const getRoomUsers = async (roomId) => {
   }
 };
 
-export const sendChatMessage = async (roomId, username, message) => {
+export const sendChatMessage = async (roomId, message) => {
   try {
     const response = await apiClient.post(`/api/rooms/${roomId}/chat`, null, {
-      params: { username, message }
+      params: { message }
     });
     return response.data;
   } catch (error) {
@@ -83,10 +79,10 @@ export const getChatHistory = async (roomId, limit = 50) => {
   }
 };
 
-export const videoAction = async (roomId, action, time, username) => {
+export const videoAction = async (roomId, action, time) => {
   try {
     const response = await apiClient.post(`/api/rooms/${roomId}/video`, null, {
-      params: { action, time, username }
+      params: { action, time }
     });
     return response.data;
   } catch (error) {

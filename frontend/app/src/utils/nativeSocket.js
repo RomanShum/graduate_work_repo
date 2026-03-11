@@ -18,7 +18,9 @@ class NativeWebSocketManager {
     this.username = username;
     this.connectionState = 'connecting';
 
-    const wsUrl = `ws://localhost:8000/ws/${roomId}/${username}`;
+    const token = localStorage.getItem('access_token');
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
+    const wsUrl = `ws://localhost:8000/ws/${roomId}/${username}${query}`;
     console.log(`🔌 Connecting to WebSocket: ${wsUrl}`);
 
     this.ws = new WebSocket(wsUrl);

@@ -4,25 +4,18 @@ import './App.css';
 import VideoPlayer from './components/VideoPlayer';
 import Chat from './components/Chat';
 import SessionControls from './components/SessionControls';
-// Выберите один из вариантов:
-//import socketManager from './utils/socket'; // для socket.io
- import socketManager from './utils/nativeSocket'; // для нативного WebSocket
+import AuthForm from './components/AuthForm';
+import socketManager from './utils/nativeSocket';
 
 function App() {
   const [sessionId, setSessionId] = useState('');
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(localStorage.getItem('kino-vmeste-username') || '');
   const [connected, setConnected] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    !!localStorage.getItem('access_token')
+  );
 
   useEffect(() => {
-    const savedUsername = localStorage.getItem('kino-vmeste-username');
-    if (savedUsername) {
-      setUsername(savedUsername);
-    } else {
-      const randomUsername = `Зритель_${Math.floor(Math.random() * 1000)}`;
-      setUsername(randomUsername);
-    }
-
-    // Проверяем статус WebSocket каждую секунду
     const checkConnection = setInterval(() => {
       setConnected(socketManager.isConnected());
     }, 1000);
@@ -30,10 +23,14 @@ function App() {
     return () => clearInterval(checkConnection);
   }, []);
 
+  const handleLoginSuccess = ({ login }) => {
+    setIsAuthenticated(true);
+    setUsername(login);
+  };
+
   const handleSessionJoined = (newSessionId, userUsername) => {
     localStorage.setItem('kino-vmeste-username', userUsername);
 
-    // Подключаемся к WebSocket
     socketManager.connect(newSessionId, userUsername);
 
     setSessionId(newSessionId);
@@ -56,8 +53,13 @@ function App() {
       </header>
 
       <main className="app-main">
-        {!sessionId ? (
-          <SessionControls onSessionJoined={handleSessionJoined} />
+        {!isAuthenticated ? (
+          <AuthForm onSuccess={handleLoginSuccess} />
+        ) : !sessionId ? (
+          <SessionControls
+            onSessionJoined={handleSessionJoined}
+            username={username}
+          />
         ) : (
           <div className="room-container">
             <div className="room-header">

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactPlayer from 'react-player';
 import { videoAction, getVideoState } from '../api/rooms';
-import socketManager from '../utils/socket';
+import socketManager from '../utils/nativeSocket';
 
 const VideoPlayer = ({ sessionId, username }) => {
   const [videoUrl, setVideoUrl] = useState('');
@@ -87,7 +87,7 @@ const VideoPlayer = ({ sessionId, username }) => {
     setPlaying(true);
     await videoAction(sessionId, 'play', played, username);
 
-    socketManager.emit('video', {
+    socketManager.send({
       type: 'video',
       action: 'play',
       time: played
@@ -100,7 +100,7 @@ const VideoPlayer = ({ sessionId, username }) => {
     setPlaying(false);
     await videoAction(sessionId, 'pause', played, username);
 
-    socketManager.emit('video', {
+    socketManager.send({
       type: 'video',
       action: 'pause',
       time: played
@@ -113,7 +113,7 @@ const VideoPlayer = ({ sessionId, username }) => {
     setPlayed(seconds);
     await videoAction(sessionId, 'seek', seconds, username);
 
-    socketManager.emit('video', {
+    socketManager.send({
       type: 'video',
       action: 'seek',
       time: seconds

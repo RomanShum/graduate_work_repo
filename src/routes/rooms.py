@@ -1,9 +1,11 @@
 # routes/rooms.py
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict, List
 import uuid
 from datetime import datetime
 from pydantic import BaseModel
+
+from dependencies import CurrentUser, get_current_user
 
 router = APIRouter(prefix="/api/rooms", tags=["rooms"])
 
@@ -36,26 +38,34 @@ messages_db: Dict[str, List[ChatMessage]] = {}
 
 
 @router.post("")
-async def create_room(creator: str):
+async def create_room(
+    creator: str | None = None,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Создать новую комнату"""
+    username = creator or current_user.login
+
     room_id = str(uuid.uuid4())[:8].upper()
 
     room = Room(
         id=room_id,
-        creator=creator,
-        users=[User(name=creator, joined_at=datetime.now().isoformat())],
+        creator=username,
+        users=[User(name=username, joined_at=datetime.now().isoformat())],
         created_at=datetime.now().isoformat()
     )
 
     rooms_db[room_id] = room
     messages_db[room_id] = []
 
-    print(f"✅ Комната создана: {room_id} (создатель: {creator})")
-    return {"id": room_id, "creator": creator}
+    print(f"✅ Комната создана: {room_id} (создатель: {username})")
+    return {"id": room_id, "creator": username}
 
 
 @router.get("/{room_id}")
-async def get_room(room_id: str):
+async def get_room(
+    room_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Получить информацию о комнате"""
     room = rooms_db.get(room_id.upper())
     if not room:
@@ -64,10 +74,16 @@ async def get_room(room_id: str):
 
 
 @router.post("/{room_id}/join")
-async def join_room(room_id: str, username: str):
+async def join_room(
+    room_id: str,
+    username: str | None = None,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Присоединиться к комнате"""
     room_id = room_id.upper()
     room = rooms_db.get(room_id)
+
+    username = username or current_user.login
 
     if not room:
         print(f"❌ Комната {room_id} не найдена")
@@ -84,10 +100,16 @@ async def join_room(room_id: str, username: str):
 
 
 @router.post("/{room_id}/leave")
-async def leave_room(room_id: str, username: str):
+async def leave_room(
+    room_id: str,
+    username: str | None = None,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Покинуть комнату"""
     room_id = room_id.upper()
     room = rooms_db.get(room_id)
+
+    username = username or current_user.login
 
     if room:
         room.users = [user for user in room.users if user.name != username]
@@ -97,7 +119,10 @@ async def leave_room(room_id: str, username: str):
 
 
 @router.get("/{room_id}/users")
-async def get_room_users(room_id: str):
+async def get_room_users(
+    room_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Получить список пользователей в комнате"""
     room_id = room_id.upper()
     room = rooms_db.get(room_id)
@@ -109,9 +134,16 @@ async def get_room_users(room_id: str):
 
 
 @router.post("/{room_id}/chat")
-async def send_message(room_id: str, username: str, message: str):
+async def send_message(
+    room_id: str,
+    username: str | None = None,
+    message: str = "",
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Отправить сообщение в чат"""
     room_id = room_id.upper()
+
+    username = username or current_user.login
 
     if room_id not in messages_db:
         messages_db[room_id] = []
@@ -132,7 +164,11 @@ async def send_message(room_id: str, username: str, message: str):
 
 
 @router.get("/{room_id}/chat")
-async def get_chat_history(room_id: str, limit: int = 50):
+async def get_chat_history(
+    room_id: str,
+    limit: int = 50,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Получить историю чата"""
     room_id = room_id.upper()
     room_messages = messages_db.get(room_id, [])
@@ -140,9 +176,17 @@ async def get_chat_history(room_id: str, limit: int = 50):
 
 
 @router.post("/{room_id}/video")
-async def video_action(room_id: str, action: str, time: float, username: str):
+async def video_action(
+    room_id: str,
+    action: str,
+    time: float,
+    username: str | None = None,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Записать действие с видео"""
     room_id = room_id.upper()
+
+    username = username or current_user.login
     room = rooms_db.get(room_id)
 
     if not room:
@@ -162,7 +206,10 @@ async def video_action(room_id: str, action: str, time: float, username: str):
 
 
 @router.get("/{room_id}/video/state")
-async def get_video_state(room_id: str):
+async def get_video_state(
+    room_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Получить текущее состояние видео"""
     room_id = room_id.upper()
     room = rooms_db.get(room_id)

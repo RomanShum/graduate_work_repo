@@ -2,24 +2,18 @@
 import React, { useState } from 'react';
 import { createRoom, joinRoom } from '../api/rooms';
 
-const SessionControls = ({ onSessionJoined }) => {
-  const [username, setUsername] = useState('');
+const SessionControls = ({ onSessionJoined, username }) => {
   const [roomId, setRoomId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [mode, setMode] = useState('create'); // 'create' or 'join'
 
   const handleCreateRoom = async () => {
-    if (!username.trim()) {
-      setError('Введите ваше имя');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
     try {
-      const room = await createRoom(username);
+      const room = await createRoom();
       console.log('✅ Room created:', room);
       onSessionJoined(room.id, username);
     } catch (err) {
@@ -31,10 +25,6 @@ const SessionControls = ({ onSessionJoined }) => {
   };
 
   const handleJoinRoom = async () => {
-    if (!username.trim()) {
-      setError('Введите ваше имя');
-      return;
-    }
     if (!roomId.trim()) {
       setError('Введите ID комнаты');
       return;
@@ -44,7 +34,7 @@ const SessionControls = ({ onSessionJoined }) => {
     setError('');
 
     try {
-      const room = await joinRoom(roomId, username);
+      const room = await joinRoom(roomId);
       console.log('✅ Room joined:', room);
       onSessionJoined(roomId, username);
     } catch (err) {
@@ -81,14 +71,8 @@ const SessionControls = ({ onSessionJoined }) => {
       {error && <div className="error-message">{error}</div>}
 
       <div className="input-group">
-        <label>Ваше имя:</label>
-        <input
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Введите ваше имя"
-          disabled={loading}
-        />
+        <label>Вы вошли как:</label>
+        <div className="readonly-value">{username}</div>
       </div>
 
       {mode === 'join' && (

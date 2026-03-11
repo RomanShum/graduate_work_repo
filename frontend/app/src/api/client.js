@@ -13,8 +13,14 @@ const apiClient = axios.create({
   },
 });
 
-// Логирование запросов
+// Логирование запросов и добавление JWT-токена
 apiClient.interceptors.request.use(request => {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    request.headers = request.headers || {};
+    request.headers.Authorization = `Bearer ${token}`;
+  }
+
   console.log('🚀 Request:', {
     method: request.method?.toUpperCase(),
     url: request.url,
@@ -40,6 +46,14 @@ apiClient.interceptors.response.use(
       data: error.response?.data,
       url: error.config?.url
     });
+
+    if (error.response?.status === 401) {
+      // Токен недействителен — очищаем и возвращаем на форму авторизации
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      window.location.reload();
+    }
+
     return Promise.reject(error);
   }
 );

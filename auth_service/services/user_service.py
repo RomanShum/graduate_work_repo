@@ -13,7 +13,8 @@ from datetime import timedelta, timezone, datetime
 from fastapi.security import HTTPBearer
 from fastapi import Depends
 from db.postgres import get_session
-from jose import jwt, JWTError
+import jwt
+from jwt import PyJWTError
 
 
 async def create_user(db: AsyncSession, user_create: UserCreate):
@@ -35,7 +36,8 @@ async def authenticate_user(db: AsyncSession, login: str, password: str, user_ag
         )
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.login}, expires_delta=access_token_expires
+        data={"sub": user.login, "user_id": str(user.id)},
+        expires_delta=access_token_expires,
     )
 
     refresh_token = create_refresh_token(data={"sub": user.login})
@@ -91,7 +93,7 @@ async def get_current_user(
         unique_id_token: str = payload.get("id")
         if login is None:
             raise credentials_exception
-    except JWTError:
+    except PyJWTError:
         raise credentials_exception
 
     result = await db.execute(select(User).where(User.login == login))
@@ -184,7 +186,7 @@ async def logout_user(user_agent: str, user_id: str, access_token: str):
             exp = payload.get("exp")
             ttl = max(exp - int(datetime.utcnow().timestamp()), 60)
             await redis.set(f"blocklist:{token_id}", "1", ex=ttl)
-    except JWTError:
+    except PyJWTError:
         pass
 
     return {"detail": "Success"}

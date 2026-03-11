@@ -4,7 +4,8 @@ from core.settings import settings
 from fastapi.security import HTTPBearer
 from fastapi.security.http import HTTPAuthorizationCredentials
 from fastapi import Depends
-from jose import jwt, JWTError
+import jwt
+from jwt import PyJWTError
 from uuid import UUID
 from typing import Annotated
 
@@ -25,5 +26,5 @@ async def get_current_user(
     )
     try:
         return get_uuid_user_id(token, credentials_exception)
-    except JWTError:
+    except PyJWTError:
         raise credentials_exception

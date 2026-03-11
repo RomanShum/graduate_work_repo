@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError
 from core.settings import settings
 from uuid import uuid4
 
@@ -25,5 +26,5 @@ def decode_token(token: str) -> dict | None:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload
-    except JWTError:
+    except PyJWTError:
         return None

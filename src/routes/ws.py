@@ -3,6 +3,10 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from typing import Dict, Set
 import json
 from datetime import datetime
+import os
+
+import jwt
+from jwt import PyJWTError
 
 router = APIRouter(prefix="/ws", tags=["websocket"])
 
@@ -78,6 +82,27 @@ manager = ConnectionManager()
 
 @router.websocket("/{room_id}/{username}")
 async def websocket_endpoint(websocket: WebSocket, room_id: str, username: str):
+    # Аутентификация по JWT-токену из query-параметра ?token=
+    token = websocket.query_params.get("token")
+    secret_key = os.getenv("SECRET_KEY", "your-super-secret-key")
+    algorithm = os.getenv("ALGORITHM", "HS256")
+
+    if not token:
+        await websocket.close(code=1008)
+        return
+
+    try:
+        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
+        login = payload.get("sub")
+        if not login:
+            raise PyJWTError()
+    except PyJWTError:
+        await websocket.close(code=1008)
+        return
+
+    # Используем логин пользователя как имя в комнате, если оно не передано
+    username = username or login
+
     await manager.connect(websocket, room_id, username)
 
     try:

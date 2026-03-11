@@ -10,7 +10,6 @@ services:
       - static:/data/static
       - media:/data/media
     depends_on:
-      - api
       - ws_app
     ports:
       - "80:80"
@@ -49,19 +48,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - app_network
-  api:
-    build: ./async_api
-    container_name: api
-    restart: always
-    volumes:
-      - ./async_api:/app/
-    depends_on:
-      redis:
-        condition: service_healthy
-    env_file:
-      - ./.env
     networks:
       - app_network
   auth_service:

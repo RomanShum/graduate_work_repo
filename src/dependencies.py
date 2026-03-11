@@ -1,19 +1,11 @@
 from typing import Dict
-# import redis.asyncio as redis
-import json
-from datetime import timedelta
 import os
 
-# Redis для хранения состояния комнат (опционально)
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")
-# redis_client = None
-
-
-# async def get_redis():
-#     global redis_client
-#     if redis_client is None:
-#         redis_client = await redis.from_url(REDIS_URL, decode_responses=True)
-#     return redis_client
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+import jwt
+from jwt import PyJWTError
+from pydantic import BaseModel
 
 
 class RoomManager:
@@ -47,7 +39,6 @@ class RoomManager:
     def add_user_to_room(self, room_id: str, user: dict) -> bool:
         if room_id in self.rooms:
             users = self.rooms[room_id]["users"]
-            # Проверяем, не существует ли уже пользователь
             for existing_user in users:
                 if existing_user["id"] == user["id"]:
                     return False
@@ -68,7 +59,6 @@ class RoomManager:
     def add_message(self, room_id: str, message: dict):
         if room_id in self.room_messages:
             self.room_messages[room_id].append(message)
-            # Ограничиваем количество хранимых сообщений
             if len(self.room_messages[room_id]) > 100:
                 self.room_messages[room_id] = self.room_messages[room_id][-100:]
 
@@ -87,5 +77,35 @@ class RoomManager:
         return {}
 
 
-# Глобальный экземпляр менеджера комнат
 room_manager = RoomManager()
+
+
+class CurrentUser(BaseModel):
+    id: str
+    login: str
+
+
+http_bearer = HTTPBearer(auto_error=True)
+
+
+async def get_current_user(
+    token: HTTPAuthorizationCredentials = Depends(http_bearer),
+) -> CurrentUser:
+    secret_key = os.getenv("SECRET_KEY", "your-super-secret-key")
+    algorithm = os.getenv("ALGORITHM", "HS256")
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Ошибка аутентификации",
+    )
+
+    try:
+        payload = jwt.decode(token.credentials, secret_key, algorithms=[algorithm])
+        user_id = payload.get("user_id")
+        login = payload.get("sub")
+        if user_id is None or login is None:
+            raise credentials_exception
+    except PyJWTError:
+        raise credentials_exception
+
+    return CurrentUser(id=user_id, login=login)
