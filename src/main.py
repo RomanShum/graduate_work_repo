@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes import rooms_router, ws_router
 import uvicorn
 
+from db import init_engine, close_engine
+
 app = FastAPI(title="Кино вместе API", version="1.0.0")
 
 # Настройка CORS
@@ -37,6 +39,7 @@ async def health_check():
 
 @app.on_event("startup")
 async def startup_event():
+    await init_engine()
     print("\n" + "=" * 60)
     print("🚀 Сервер запущен!")
     print("=" * 60)
@@ -68,6 +71,11 @@ async def startup_event():
     print(f"🔌 WebSocket: ws://localhost:8000")
     print(f"📚 Документация: http://localhost:8000/docs")
     print("=" * 60 + "\n")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await close_engine()
 
 
 if __name__ == "__main__":

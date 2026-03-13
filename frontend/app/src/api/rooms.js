@@ -100,3 +100,25 @@ export const getVideoState = async (roomId) => {
     return { is_playing: false, current_time: 0, video_url: '' };
   }
 };
+
+export const getFilms = async () => {
+  try {
+    const response = await apiClient.get('/api/rooms/films');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error getting films:', error);
+    return [];
+  }
+};
+
+export const getFriends = async (filmId) => {
+  try {
+    const response = await apiClient.get('/api/rooms/friends', {
+      params: filmId ? { film_id: filmId } : {},
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error getting friends:', error);
+    return [];
+  }
+};

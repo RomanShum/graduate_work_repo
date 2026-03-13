@@ -1,7 +1,7 @@
 from models.entity import Favorite
 from fastapi import HTTPException, status
 from uuid import UUID
-from typing import Optional
+from typing import Optional, List
 
 
 async def get_favorite_from_db(user_id: UUID, film_id: UUID) -> Optional[Favorite]:
@@ -36,3 +36,9 @@ async def delete_favorite( user_id: UUID, film_id: UUID) -> bool:
         )
     await favorite.delete()
     return True
+
+
+async def get_users_for_film(film_id: UUID) -> List[UUID]:
+    favorites = await Favorite.find(Favorite.film_id == film_id).to_list()
+    print(favorites)
+    return [fav.user_id for fav in favorites]

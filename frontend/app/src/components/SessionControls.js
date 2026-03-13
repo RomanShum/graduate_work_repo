@@ -1,19 +1,59 @@
 // src/components/SessionControls.js
-import React, { useState } from 'react';
-import { createRoom, joinRoom } from '../api/rooms';
+import React, { useState, useEffect } from 'react';
+import { createRoom, joinRoom, getFilms, getFriends } from '../api/rooms';
 
 const SessionControls = ({ onSessionJoined, username }) => {
   const [roomId, setRoomId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [mode, setMode] = useState('create'); // 'create' or 'join'
+  const [films, setFilms] = useState([]);
+  const [selectedFilmId, setSelectedFilmId] = useState('');
+  const [friends, setFriends] = useState([]);
+
+  useEffect(() => {
+    const loadFilms = async () => {
+      try {
+        const data = await getFilms();
+        setFilms(data);
+        if (data.length > 0) {
+          setSelectedFilmId(data[0].id);
+        }
+      } catch (e) {
+        console.error(e);
+        setError('Не удалось загрузить список фильмов');
+      }
+    };
+
+    loadFilms();
+  }, []);
+
+  useEffect(() => {
+    const loadFriends = async () => {
+      try {
+        const data = await getFriends(selectedFilmId || null);
+        setFriends(data);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    if (selectedFilmId) {
+      loadFriends();
+    }
+  }, [selectedFilmId]);
 
   const handleCreateRoom = async () => {
+    if (!selectedFilmId) {
+      setError('Выберите фильм');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      const room = await createRoom();
+      const room = await createRoom(selectedFilmId);
       console.log('✅ Room created:', room);
       onSessionJoined(room.id, username);
     } catch (err) {
@@ -74,6 +114,37 @@ const SessionControls = ({ onSessionJoined, username }) => {
         <label>Вы вошли как:</label>
         <div className="readonly-value">{username}</div>
       </div>
+
+      {mode === 'create' && (
+        <div className="input-group">
+          <label>Фильм:</label>
+          <select
+            value={selectedFilmId}
+            onChange={(e) => setSelectedFilmId(e.target.value)}
+            disabled={loading || films.length === 0}
+          >
+            {films.map((film) => (
+              <option key={film.id} value={film.id}>
+                {film.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {mode === 'create' && friends.length > 0 && (
+        <div className="friends-list">
+          <h3>Друзья</h3>
+          <ul>
+            {friends.map((friend) => (
+              <li key={friend.id}>
+                {friend.login}
+                {friend.in_favorites && ' — В избранном'}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {mode === 'join' && (
         <div className="input-group">

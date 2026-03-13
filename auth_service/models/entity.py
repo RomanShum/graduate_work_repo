@@ -17,15 +17,17 @@ class User(Base):
     password = Column(String(255), nullable=False)
     first_name = Column(String(50))
     last_name = Column(String(50))
+    email = Column(String(50), unique=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_superuser = Column(Boolean, default=False)
 
-    def __init__(self, login: str, password: str, first_name: str, last_name: str, is_superuser: bool = False) -> None:
+    def __init__(self, login: str, password: str, first_name: str, last_name: str, email: str, is_superuser: bool = False) -> None:
         self.login = login
         self.password = generate_password_hash(password)
         self.first_name = first_name
         self.last_name = last_name
         self.is_superuser = is_superuser
+        self.email = email
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password, password)

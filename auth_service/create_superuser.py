@@ -34,7 +34,8 @@ async def create_superuser(
             password=password,
             first_name=first_name,
             last_name=last_name,
-            is_superuser=True
+            is_superuser=True,
+            email = "test@test.com"
         )
         session.add(new_user)
         await session.commit()

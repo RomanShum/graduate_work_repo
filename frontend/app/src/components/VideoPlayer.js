@@ -4,13 +4,13 @@ import ReactPlayer from 'react-player';
 import { videoAction, getVideoState } from '../api/rooms';
 import socketManager from '../utils/nativeSocket';
 
+const DEFAULT_VIDEO_URL = 'https://www.w3schools.com/html/mov_bbb.mp4';
+
 const VideoPlayer = ({ sessionId, username }) => {
-  const [videoUrl, setVideoUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState(DEFAULT_VIDEO_URL);
   const [playing, setPlaying] = useState(false);
   const [played, setPlayed] = useState(0);
   const [seeking, setSeeking] = useState(false);
-  const [urlInput, setUrlInput] = useState('');
-  const [showUrlInput, setShowUrlInput] = useState(false);
   const [users, setUsers] = useState([]);
 
   const playerRef = useRef(null);
@@ -20,7 +20,7 @@ const VideoPlayer = ({ sessionId, username }) => {
   const loadVideoState = useCallback(async () => {
     try {
       const state = await getVideoState(sessionId);
-      setVideoUrl(state.video_url || '');
+      setVideoUrl(DEFAULT_VIDEO_URL);
       setPlaying(state.is_playing);
       setPlayed(state.current_time || 0);
     } catch (error) {
@@ -136,14 +136,6 @@ const VideoPlayer = ({ sessionId, username }) => {
     handleSeek(newTime);
   };
 
-  const handleUrlSubmit = async () => {
-    if (!urlInput) return;
-
-    setVideoUrl(urlInput);
-    setShowUrlInput(false);
-    setUrlInput('');
-  };
-
   return (
     <div className="video-player-container">
       <div className="video-header">
@@ -152,28 +144,6 @@ const VideoPlayer = ({ sessionId, username }) => {
           👥 {users.length + 1} зрителей
         </div>
       </div>
-
-      {!videoUrl && !showUrlInput && (
-        <div className="no-video">
-          <p>Видео не выбрано</p>
-          <button onClick={() => setShowUrlInput(true)}>
-            Вставить ссылку на видео
-          </button>
-        </div>
-      )}
-
-      {showUrlInput && (
-        <div className="url-input">
-          <input
-            type="text"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            placeholder="Вставьте ссылку на YouTube или другое видео"
-          />
-          <button onClick={handleUrlSubmit}>Загрузить</button>
-          <button onClick={() => setShowUrlInput(false)}>Отмена</button>
-        </div>
-      )}
 
       {videoUrl && (
         <>

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, status
 from uuid import UUID
+from typing import Annotated, List
+
 from models.entity import Favorite, FavoriteRequest
 from services import favorite_service
 from core.depends import get_current_user
-from typing import Annotated
 
 router = APIRouter(prefix='/favorite', tags=['favorites'])
 
@@ -30,3 +31,14 @@ async def delete_favorite(
     user_id: Annotated[UUID, Depends(get_current_user)]
 ) -> bool:
     return await favorite_service.delete_favorite(film_id=film_id, user_id=user_id)
+
+
+@router.get("/film/{film_id}/users", response_model=List[UUID])
+async def get_favorite_users_for_film(
+    film_id: UUID,
+) -> List[UUID]:
+    """
+    Служебный эндпоинт: список пользователей, у которых фильм в избранном.
+    Используется backend-ом комнат для отображения пометки "В избранном" у друзей.
+    """
+    return await favorite_service.get_users_for_film(film_id=film_id)
