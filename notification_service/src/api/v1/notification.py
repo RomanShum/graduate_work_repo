@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request, status
 from services import notification_service
-from models.entity import Notification, UserRegistrationEvent, NewContentEvent
+from models.entity import Notification, UserRegistrationEvent, NewContentEvent, CreateRoomEvent
 
 router = APIRouter(prefix="/event", tags=["events"])
 
@@ -16,4 +16,11 @@ async def register(
 async def register(
         body: NewContentEvent
 ) -> Notification:
+    return await notification_service.event(data=body)
+
+@router.post("/create_room", response_model=Notification)
+async def create_room(
+        body: CreateRoomEvent
+) -> Notification:
+    print(body)
     return await notification_service.event(data=body)

@@ -4,5 +4,5 @@ from pydantic import BaseModel
 
 class User(BaseModel):
     id: UUID
-    name: str
+    first_name: str
     email: str

@@ -26,6 +26,12 @@ async def create_user(db: AsyncSession, user_create: UserCreate):
     return user
 
 
+async def get_user_info( db: AsyncSession, user_id: str):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    return user
+
+
 async def authenticate_user(db: AsyncSession, login: str, password: str, user_agent: str) -> User | None:
     result = await db.execute(select(User).where(User.login == login))
     user = result.scalar_one_or_none()

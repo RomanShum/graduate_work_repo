@@ -34,16 +34,27 @@ class WelcomeMessage(PersonalizedMessage):
     def get_message(self):
         return f"Рады приветствовать вас, {self.user.name}, в нашем сервисе!"
 
+class CreatedRoom(PersonalizedMessage):
+    def __init__(self, user: User, additional_data: dict):
+        super().__init__(user=user)
+        self.title = f"Привет, {user.first_name}!"
+        self.additional_data = additional_data
+
+    def get_message(self):
+        print(self.additional_data)
+        return f"ID комнаты для подключения: {self.additional_data.get("room_id")}!"
+
 
 class MappingTemplates:
     mapping_messages = {
         "welcome": WelcomeMessage,
-        "new": Message
+        "new": Message,
+        "created_room": CreatedRoom
     }
 
     @classmethod
-    def get_template_personalized(cls, template_name: str, user: User):
-        return cls.mapping_messages[template_name](user=user)
+    def get_template_personalized(cls, template_name: str, user: User, additional_data: dict = None):
+        return cls.mapping_messages[template_name](user=user, additional_data=additional_data)
 
     @classmethod
     def get_template(cls, template_name: str):

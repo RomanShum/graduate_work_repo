@@ -40,37 +40,6 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     await init_engine()
-    print("\n" + "=" * 60)
-    print("🚀 Сервер запущен!")
-    print("=" * 60)
-    print("\n📋 Доступные эндпоинты:")
-    print("-" * 40)
-
-    http_routes = []
-    ws_routes = []
-
-    for route in app.routes:
-        if hasattr(route, 'methods'):
-            methods = ",".join(route.methods)
-            http_routes.append(f"  🔷 {route.path:35} [{methods}]")
-        else:
-            ws_routes.append(f"  🔶 {route.path} [WEBSOCKET]")
-
-    # Сортируем и выводим HTTP маршруты
-    for route in sorted(http_routes):
-        print(route)
-
-    # Выводим WebSocket маршруты
-    if ws_routes:
-        print("\n  WebSocket маршруты:")
-        for route in ws_routes:
-            print(route)
-
-    print("-" * 40)
-    print(f"\n🌐 HTTP:  http://localhost:8000")
-    print(f"🔌 WebSocket: ws://localhost:8000")
-    print(f"📚 Документация: http://localhost:8000/docs")
-    print("=" * 60 + "\n")
 
 
 @app.on_event("shutdown")

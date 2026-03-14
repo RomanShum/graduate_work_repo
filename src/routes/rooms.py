@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
 import os
 from sqlalchemy.future import select
-from dependencies import CurrentUser, get_current_user
+from dependencies import CurrentUser, get_current_user, notification_client, NotificationClient, get_notification_client
 from db import get_session
 
 from models.entity import Room, UserRoom, ChatMessage, Friend
@@ -16,12 +16,11 @@ router = APIRouter(prefix="/api/rooms", tags=["rooms"])
 @router.post("")
 async def create_room(
         film_id: str | None = None,
-        creator: str | None = None,
         current_user: CurrentUser = Depends(get_current_user),
-        db: AsyncSession = Depends(get_session)
+        db: AsyncSession = Depends(get_session),
+        notification_client: NotificationClient = Depends(get_notification_client)
 ):
     """Создать новую комнату"""
-    username = creator or current_user.login
 
     room = Room(
         creator=current_user.id,
@@ -31,8 +30,13 @@ async def create_room(
     await db.commit()
     await db.refresh(room)
 
-    print(f"Комната создана: {room.id} (создатель: {username})")
-    return {"id": room.id, "creator": username}
+    friends = await list_friends(film_id=film_id, db=db, current_user=current_user)
+    for friend in friends:
+        if friend.in_favorites:
+            await notification_client.send_event(friend.id, room.id)
+
+    print(f"Комната создана: {room.id} (создатель: {current_user.login})")
+    return {"id": room.id, "creator": current_user.login}
 
 
 @router.get("/films")
@@ -131,7 +135,6 @@ async def get_room(
 @router.post("/{room_id}/join")
 async def join_room(
         room_id: str,
-        username: str | None = None,
         current_user: CurrentUser = Depends(get_current_user),
         db: AsyncSession = Depends(get_session)
 ):
@@ -141,7 +144,6 @@ async def join_room(
 
     result = await db.execute(select(UserRoom).where(Room.id == room_id))
     user_rooms = result.scalars().all()
-    username = username or current_user.login
 
     if not room:
         print(f"Комната {room_id} не найдена")
@@ -155,9 +157,9 @@ async def join_room(
         db.add(room)
         await db.commit()
         await db.refresh(room)
-        print(f"{username} присоединился к комнате {room_id}")
+        print(f"{current_user.login} присоединился к комнате {room_id}")
     else:
-        print(f"{username} уже в комнате {room_id}")
+        print(f"{current_user.login} уже в комнате {room_id}")
 
     return room
 
@@ -165,22 +167,20 @@ async def join_room(
 @router.post("/{room_id}/leave")
 async def leave_room(
         room_id: str,
-        username: str | None = None,
         current_user: CurrentUser = Depends(get_current_user),
         db: AsyncSession = Depends(get_session)
 ):
     """Покинуть комнату"""
     result = await db.execute(select(Room).where(Room.id == room_id))
     room = result.scalar_one_or_none()
-    username = username or current_user.login
 
     if room:
         result = await db.execute(select(UserRoom).where(Room.id == room_id).where(UserRoom.user_id == current_user.id))
         await result.delete()
         await db.commit()
-        print(f"{username} покинул комнату {room_id}")
+        print(f"{current_user.login} покинул комнату {room_id}")
 
-    return {"status": "ok", "message": f"{username} покинул комнату"}
+    return {"status": "ok", "message": f"{current_user.login} покинул комнату"}
 
 
 @router.get("/{room_id}/users")
@@ -204,7 +204,6 @@ async def get_room_users(
 @router.post("/{room_id}/chat")
 async def send_message(
         room_id: str,
-        username: str | None = None,
         message: str = "",
         current_user: CurrentUser = Depends(get_current_user),
         db: AsyncSession = Depends(get_session)
@@ -250,7 +249,6 @@ async def video_action(
         room_id: str,
         action: str,
         time: float,
-        username: str | None = None,
         current_user: CurrentUser = Depends(get_current_user),
         db: AsyncSession = Depends(get_session)
 ):

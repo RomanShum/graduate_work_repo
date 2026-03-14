@@ -11,7 +11,7 @@ class Sender:
 
     async def __prepare_message(self, message, user: User | None = None):
         if user:
-            template = MappingTemplates.get_template_personalized(template_name=message.get('type'), user=user)
+            template = MappingTemplates.get_template_personalized(template_name=message.get('type'), user=user, additional_data=message)
         else:
             template = MappingTemplates.get_template(template_name=message.get('type'))
 

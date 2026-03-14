@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordRequestForm
 from models.entity import User
 from services.user_service import authenticate_user, get_user_login_history, refresh_user_token, logout_user, \
-    update_user
+    update_user, get_user_info
 from db.postgres import get_session
 import services.user_service as user_service
 from schemas.entity import LoginHistorySchema, RefreshTokenRequest
@@ -48,6 +48,18 @@ async def get_login_history(
     Получение истории входов пользователя
     """
     return await get_user_login_history(db, current_user.id, page_size, page_number)
+
+
+@router.get("/get/{user_id}", response_model=UserInDB, status_code=status.HTTP_200_OK,
+            summary='Получение пользователя')
+async def get_user(
+        user_id: str,
+        db: AsyncSession = Depends(get_session)
+):
+    """
+    Получение пользователя
+    """
+    return await get_user_info(db, user_id)
 
 
 @router.post('/refresh', response_model=Token, status_code=status.HTTP_200_OK, summary='Обновление токена')

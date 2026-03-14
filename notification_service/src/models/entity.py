@@ -15,6 +15,7 @@ class BaseEvent(BaseModel, ABC):
 class Notification(Document):
     id: UUID = Indexed(UUID)
     object_id: UUID | None = None
+    room_id: UUID | None = None
     type: str
     created_at: datetime = Field(default_factory=datetime.now)
     read: bool = Field(default=False)
@@ -30,3 +31,7 @@ class UserRegistrationEvent(BaseEvent):
 class NewContentEvent(BaseEvent):
     object_id: UUID
     release_date: datetime = Field(default_factory=datetime.now)
+
+class CreateRoomEvent(BaseEvent):
+    object_id: UUID
+    room_id: UUID

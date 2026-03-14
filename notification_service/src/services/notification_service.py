@@ -16,24 +16,18 @@ async def get_notification_from_db(object_id: UUID, type: str) -> Optional[Notif
 
 
 async def event(data: BaseEvent):
-    notification = await get_notification_from_db(object_id=data.object_id, type=data.type)
-    if not notification:
-        notification = Notification(
-            id=uuid4(),
-            object_id=data.object_id,
-            type=data.type,
-            created_at=datetime.now(),
-            read=False
-        )
-        producer = AIOKafkaProducer(bootstrap_servers=settings.kafka_bootstrap_servers)
-        await producer.start()
-        try:
-            await producer.send_and_wait("event", notification.model_dump_json().encode('utf-8'))
-        finally:
-            await producer.stop()
-        return await notification.insert()
-
-    raise HTTPException(
-        status_code=status.HTTP_409_CONFLICT,
-        detail="Уже существует"
+    notification = Notification(
+        id=uuid4(),
+        object_id=data.object_id,
+        room_id=data.room_id,
+        type=data.type,
+        created_at=datetime.now(),
+        read=False
     )
+    producer = AIOKafkaProducer(bootstrap_servers=settings.kafka_bootstrap_servers)
+    await producer.start()
+    try:
+        await producer.send_and_wait("event", notification.model_dump_json().encode('utf-8'))
+    finally:
+        await producer.stop()
+    return await notification.insert()

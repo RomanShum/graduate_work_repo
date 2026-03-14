@@ -1,83 +1,18 @@
 from typing import Dict
 import os
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import jwt
 from jwt import PyJWTError
 from pydantic import BaseModel
+import aiohttp
+from core.settings import Settings
+import logging
 
-
-class RoomManager:
-    """Менеджер для хранения комнат в памяти (для простоты)"""
-
-    def __init__(self):
-        self.rooms: Dict[str, dict] = {}
-        self.room_messages: Dict[str, list] = {}
-
-    def create_room(self, room_data: dict) -> dict:
-        room_id = room_data["id"]
-        self.rooms[room_id] = room_data
-        self.room_messages[room_id] = []
-        return room_data
-
-    def get_room(self, room_id: str) -> dict | None:
-        return self.rooms.get(room_id)
-
-    def update_room(self, room_id: str, data: dict) -> dict | None:
-        if room_id in self.rooms:
-            self.rooms[room_id].update(data)
-            return self.rooms[room_id]
-        return None
-
-    def delete_room(self, room_id: str):
-        if room_id in self.rooms:
-            del self.rooms[room_id]
-        if room_id in self.room_messages:
-            del self.room_messages[room_id]
-
-    def add_user_to_room(self, room_id: str, user: dict) -> bool:
-        if room_id in self.rooms:
-            users = self.rooms[room_id]["users"]
-            for existing_user in users:
-                if existing_user["id"] == user["id"]:
-                    return False
-            users.append(user)
-            return True
-        return False
-
-    def remove_user_from_room(self, room_id: str, user_id: str):
-        if room_id in self.rooms:
-            users = self.rooms[room_id]["users"]
-            self.rooms[room_id]["users"] = [u for u in users if u["id"] != user_id]
-
-    def get_room_users(self, room_id: str) -> list:
-        if room_id in self.rooms:
-            return self.rooms[room_id]["users"]
-        return []
-
-    def add_message(self, room_id: str, message: dict):
-        if room_id in self.room_messages:
-            self.room_messages[room_id].append(message)
-            if len(self.room_messages[room_id]) > 100:
-                self.room_messages[room_id] = self.room_messages[room_id][-100:]
-
-    def get_messages(self, room_id: str, limit: int = 50) -> list:
-        if room_id in self.room_messages:
-            return self.room_messages[room_id][-limit:]
-        return []
-
-    def update_video_state(self, room_id: str, video_state: dict):
-        if room_id in self.rooms:
-            self.rooms[room_id]["video_state"] = video_state
-
-    def get_video_state(self, room_id: str) -> dict:
-        if room_id in self.rooms:
-            return self.rooms[room_id].get("video_state", {})
-        return {}
-
-
-room_manager = RoomManager()
+settings = Settings()
+logger = logging.getLogger(__name__)
 
 
 class CurrentUser(BaseModel):
@@ -109,3 +44,32 @@ async def get_current_user(
         raise credentials_exception
 
     return CurrentUser(id=user_id, login=login)
+
+
+class NotificationClient:
+    def __init__(self):
+        self.url = settings.notification_url
+
+    async def send_event(self, user_id: UUID, room_id: UUID):
+        url = f"{self.url}/notification/v1/event/create_room"
+        print(f"{url=}")
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json={
+                    "room_id": str(room_id),
+                    "object_id": str(user_id),
+                    "type": "created_room"
+                }) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        logger.error(f"Notification service error: {response.status}")
+                        return None
+        except Exception as e:
+            logger.error(f"Unexpected error in auth client: {str(e)}")
+            return None
+
+notification_client = NotificationClient()
+
+def get_notification_client() -> NotificationClient:
+    return notification_client

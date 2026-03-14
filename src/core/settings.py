@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     postgres_db: str
     sql_host: str
     sql_port: str
+    notification_url: str
     DEBUG: bool = False
 
     SECRET_KEY: str = "your-super-secret-key"
