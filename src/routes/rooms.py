@@ -3,14 +3,16 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
-import os
 from sqlalchemy.future import select
 from dependencies import CurrentUser, get_current_user, notification_client, NotificationClient, get_notification_client
 from db import get_session
-
+from core.settings import Settings
 from models.entity import Room, UserRoom, ChatMessage, Friend
+import logging
 
 router = APIRouter(prefix="/api/rooms", tags=["rooms"])
+settings = Settings()
+logger = logging.getLogger(__name__)
 
 
 @router.post("")
@@ -35,7 +37,7 @@ async def create_room(
         if friend.in_favorites:
             await notification_client.send_event(friend.id, room.id)
 
-    print(f"Комната создана: {room.id} (создатель: {current_user.login})")
+    logger.info(f"Комната создана: {room.id} (создатель: {current_user.login})")
     return {"id": room.id, "creator": current_user.login}
 
 
@@ -91,7 +93,7 @@ async def list_friends(
     favorite_user_ids: set[str] = set()
 
     if film_id:
-        ugc_base = os.getenv("UGC_BASE_URL", "http://ugc:8000")
+        ugc_base = settings.ugc_url
         url = f"{ugc_base}/api/v1/favorite/film/{film_id}/users"
         try:
             async with httpx.AsyncClient(timeout=3.0) as client:
@@ -146,7 +148,7 @@ async def join_room(
     user_rooms = result.scalars().all()
 
     if not room:
-        print(f"Комната {room_id} не найдена")
+        logger.info(f"Комната {room_id} не найдена")
         raise HTTPException(status_code=404, detail="Комната не найдена")
 
     if not current_user.id in [user_room.user_id for user_room in user_rooms]:
@@ -157,9 +159,9 @@ async def join_room(
         db.add(room)
         await db.commit()
         await db.refresh(room)
-        print(f"{current_user.login} присоединился к комнате {room_id}")
+        logger.info(f"{current_user.login} присоединился к комнате {room_id}")
     else:
-        print(f"{current_user.login} уже в комнате {room_id}")
+        logger.info(f"{current_user.login} уже в комнате {room_id}")
 
     return room
 
@@ -178,7 +180,7 @@ async def leave_room(
         result = await db.execute(select(UserRoom).where(Room.id == room_id).where(UserRoom.user_id == current_user.id))
         await result.delete()
         await db.commit()
-        print(f"{current_user.login} покинул комнату {room_id}")
+        logger.info(f"{current_user.login} покинул комнату {room_id}")
 
     return {"status": "ok", "message": f"{current_user.login} покинул комнату"}
 

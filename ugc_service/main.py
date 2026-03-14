@@ -7,7 +7,6 @@ from models.entity import Like, Favorite, Review
 from core.settings import Settings
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
-from logstash_async.handler import AsynchronousLogstashHandler
 import logging
 import uuid
 
@@ -39,16 +38,6 @@ app = FastAPI(
 
 logger = logging.getLogger('fastapi')
 logger.setLevel(logging.INFO)
-logstash_handler = AsynchronousLogstashHandler(
-    host=settings.logstash,
-    port=settings.logstash_port,
-    database_path=None,
-    transport=settings.logstash_transport,
-    ssl_enable=settings.logstash_ssl,
-    enable=True,
-    event_ttl=settings.event_ttl,
-)
-logger.addHandler(logstash_handler)
 
 async def put_info(call_next, request, request_id):
     response = await call_next(request)

@@ -11,7 +11,6 @@ settings = Settings()
 async def run(consumer: KafkaConsumer, sender: Sender):
     try:
         async for message in consumer:
-            print(f"{message.value=}")
             await sender.send(message.value)
     finally:
         await consumer.stop()

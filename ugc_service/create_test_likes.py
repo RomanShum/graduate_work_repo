@@ -10,13 +10,11 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
-import os
 
 from core.settings import Settings
 from models.entity import Like, Favorite, Review
 
 sys.path.append("/opt/app")
-
 
 app = typer.Typer(help="Создание тестовых лайков фильмов в Mongo (UGC).")
 
@@ -48,18 +46,11 @@ async def _load_film_ids(session: AsyncSession, limit: int) -> List[str]:
 
 
 async def _create_likes(
-    users_limit: int,
-    films_limit: int,
+        users_limit: int,
+        films_limit: int,
 ) -> None:
     settings = Settings()
-
-    # Подключаемся к Postgres (та же БД, что и auth_service)
-    pg_user = os.getenv("POSTGRES_USER", "postgres")
-    pg_password = os.getenv("POSTGRES_PASSWORD", "secret")
-    pg_db = os.getenv("POSTGRES_DB", "theatre")
-    pg_host = os.getenv("SQL_HOST", os.getenv("DB_HOST", "cinema_db"))
-    pg_port = os.getenv("SQL_PORT", os.getenv("DB_PORT", "5432"))
-    pg_url = f"postgresql+asyncpg://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}"
+    pg_url = settings.DATABASE_URL
 
     engine = create_async_engine(pg_url, echo=False)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -80,11 +71,11 @@ async def _create_likes(
     await Favorite.delete_all()
     # Простая генерация: для каждого пользователя лайкаем случайные 3 фильма
     for uid in user_ids:
-        liked_films =[
+        liked_films = [
             '3d825f60-9fff-4dfe-b294-1a45fa1e115d',
             '0312ed51-8833-413f-bff5-0e139c11264a',
             '025c58cd-1b7e-43be-9ffb-8571a613579b',
-             'cddf9b8f-27f9-4fe9-97cb-9e27d4fe3394',
+            'cddf9b8f-27f9-4fe9-97cb-9e27d4fe3394',
             '3b914679-1f5e-4cbd-8044-d13d35d5236c'
         ]
         for fid in liked_films:
@@ -97,8 +88,8 @@ async def _create_likes(
 
 @app.command()
 def main(
-    users_limit: int = typer.Option(6, help="Сколько пользователей взять из Postgres"),
-    films_limit: int = typer.Option(30, help="Сколько фильмов взять для лайков"),
+        users_limit: int = typer.Option(6, help="Сколько пользователей взять из Postgres"),
+        films_limit: int = typer.Option(30, help="Сколько фильмов взять для лайков"),
 ):
     """
     Создать тестовые лайки фильмов в Mongo для существующих пользователей и фильмов.
@@ -108,4 +99,3 @@ def main(
 
 if __name__ == "__main__":
     app()
-

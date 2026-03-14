@@ -1,7 +1,6 @@
-// src/components/Chat.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { sendChatMessage, getChatHistory } from '../api/rooms';
-import socketManager from '../utils/nativeSocket'; // Импортируем нативный менеджер
+import socketManager from '../utils/nativeSocket';
 
 const Chat = ({ sessionId, username }) => {
   const [messages, setMessages] = useState([]);
@@ -13,9 +12,7 @@ const Chat = ({ sessionId, username }) => {
   // Загрузка истории чата
   const loadChatHistory = useCallback(async () => {
     try {
-      console.log('Loading chat history for room:', sessionId);
       const history = await getChatHistory(sessionId);
-      console.log('Chat history loaded:', history.length, 'messages');
       setMessages(history);
     } catch (error) {
       console.error('Failed to load chat history:', error);
@@ -24,9 +21,7 @@ const Chat = ({ sessionId, username }) => {
 
   // Обработка нового сообщения через WebSocket
   const handleNewMessage = useCallback((data) => {
-    console.log('📨 New message via WebSocket:', data);
     setMessages(prev => {
-      // Проверяем, нет ли уже такого сообщения (чтобы избежать дубликатов)
       const exists = prev.some(m =>
         m.created_at === data.created_at &&
         m.username === data.username &&
@@ -34,7 +29,6 @@ const Chat = ({ sessionId, username }) => {
       );
 
       if (exists) {
-        console.log('Message already exists, skipping');
         return prev;
       }
 
@@ -48,10 +42,9 @@ const Chat = ({ sessionId, username }) => {
 
   // Обработка подключения пользователя
   const handleUserJoined = useCallback((data) => {
-    console.log('👤 User joined:', data);
     setMessages(prev => [...prev, {
       username: 'system',
-      message: `👋 ${data.username} присоединился к комнате`,
+      message: `${data.username} присоединился к комнате`,
       timestamp: data.timestamp
     }]);
     setUsers(prev => [...prev, data.username]);
@@ -59,10 +52,9 @@ const Chat = ({ sessionId, username }) => {
 
   // Обработка отключения пользователя
   const handleUserLeft = useCallback((data) => {
-    console.log('👋 User left:', data);
     setMessages(prev => [...prev, {
       username: 'system',
-      message: `👋 ${data.username} покинул комнату`,
+      message: `${data.username} покинул комнату`,
       timestamp: data.timestamp
     }]);
     setUsers(prev => prev.filter(u => u !== data.username));
@@ -70,23 +62,20 @@ const Chat = ({ sessionId, username }) => {
 
   // Обработка подтверждения подключения
   const handleConnectionEstablished = useCallback((data) => {
-    console.log('🔌 Connection established:', data);
     setIsConnected(true);
     setMessages(prev => [...prev, {
       username: 'system',
-      message: '✅ Подключение к чату установлено',
+      message: 'Подключение к чату установлено',
       timestamp: data.timestamp
     }]);
   }, []);
 
   // Обработка изменения состояния подключения
   const handleConnectionChanged = useCallback((data) => {
-    console.log('🔌 Connection changed:', data);
     setIsConnected(data.connected);
   }, []);
 
   useEffect(() => {
-    console.log('Chat component mounted for room:', sessionId);
 
     // Загружаем историю
     loadChatHistory();
@@ -100,7 +89,6 @@ const Chat = ({ sessionId, username }) => {
 
     // Проверяем текущий статус
     const connected = socketManager.isConnected();
-    console.log('WebSocket connected:', connected);
     setIsConnected(connected);
 
     return () => {
@@ -122,26 +110,18 @@ const Chat = ({ sessionId, username }) => {
     if (!inputMessage.trim()) return;
 
     const messageText = inputMessage.trim();
-    console.log('Sending message:', messageText);
 
     try {
-      // 1. Отправляем через HTTP для сохранения в истории
       const savedMessage = await sendChatMessage(sessionId, messageText);
-      console.log('Message saved via HTTP:', savedMessage);
 
-      // 2. Отправляем через WebSocket для real-time
       const wsConnected = socketManager.isConnected();
-      console.log('WebSocket connected for sending:', wsConnected);
 
       if (wsConnected) {
         const sent = socketManager.send({
           type: 'chat',
           message: messageText
         });
-        console.log('Message sent via WebSocket:', sent);
       } else {
-        console.warn('WebSocket not connected, adding message locally');
-        // Добавляем сообщение локально
         setMessages(prev => [...prev, {
           username: username,
           message: messageText,
@@ -226,7 +206,7 @@ const Chat = ({ sessionId, username }) => {
 
       {!isConnected && (
         <div className="connection-warning">
-          ⚠️ Подключение к чату в реальном времени отсутствует.
+          Подключение к чату в реальном времени отсутствует.
           Сообщения будут видны только вам.
         </div>
       )}

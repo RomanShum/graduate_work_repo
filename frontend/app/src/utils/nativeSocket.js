@@ -1,4 +1,3 @@
-// src/utils/nativeSocket.js
 class NativeWebSocketManager {
   constructor() {
     this.ws = null;
@@ -6,7 +5,7 @@ class NativeWebSocketManager {
     this.username = null;
     this.listeners = new Map();
     this.reconnectTimeout = null;
-    this.connectionState = 'disconnected'; // 'connecting', 'connected', 'disconnected'
+    this.connectionState = 'disconnected';
   }
 
   connect(roomId, username) {
@@ -21,12 +20,12 @@ class NativeWebSocketManager {
     const token = localStorage.getItem('access_token');
     const query = token ? `?token=${encodeURIComponent(token)}` : '';
     const wsUrl = `ws://localhost:8000/ws/${roomId}/${username}${query}`;
-    console.log(`🔌 Connecting to WebSocket: ${wsUrl}`);
+    console.log(`Connecting to WebSocket: ${wsUrl}`);
 
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
-      console.log('✅ WebSocket connected');
+      console.log('WebSocket connected');
       this.connectionState = 'connected';
 
       // Уведомляем всех слушателей о подключении
@@ -50,13 +49,13 @@ class NativeWebSocketManager {
     };
 
     this.ws.onerror = (error) => {
-      console.error('❌ WebSocket error:', error);
+      console.error('WebSocket error:', error);
       this.connectionState = 'error';
       this.handleEvent('connection_error', error);
     };
 
     this.ws.onclose = () => {
-      console.log('📴 WebSocket disconnected');
+      console.log('WebSocket disconnected');
       this.connectionState = 'disconnected';
       this.handleEvent('connection_changed', { connected: false });
 
@@ -66,7 +65,7 @@ class NativeWebSocketManager {
       }
       this.reconnectTimeout = setTimeout(() => {
         if (this.roomId && this.username && this.connectionState !== 'connected') {
-          console.log('🔄 Reconnecting...');
+          console.log('Reconnecting...');
           this.connect(this.roomId, this.username);
         }
       }, 3000);
@@ -94,10 +93,10 @@ class NativeWebSocketManager {
   send(data) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data));
-      console.log('📤 WebSocket sent:', data);
+      console.log('WebSocket sent:', data);
       return true;
     } else {
-      console.warn('⚠️ Cannot send, WebSocket not connected. State:', this.ws?.readyState);
+      console.warn('Cannot send, WebSocket not connected. State:', this.ws?.readyState);
       return false;
     }
   }
@@ -137,7 +136,7 @@ class NativeWebSocketManager {
   }
 
   getSocketId() {
-    return 'ws-' + Date.now(); // Заглушка, т.к. нативный WebSocket не дает ID
+    return 'ws-' + Date.now();
   }
 }
 

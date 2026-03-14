@@ -22,5 +22,4 @@ async def register(
 async def create_room(
         body: CreateRoomEvent
 ) -> Notification:
-    print(body)
     return await notification_service.event(data=body)

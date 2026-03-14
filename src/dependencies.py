@@ -1,5 +1,3 @@
-from typing import Dict
-import os
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
@@ -24,10 +22,10 @@ http_bearer = HTTPBearer(auto_error=True)
 
 
 async def get_current_user(
-    token: HTTPAuthorizationCredentials = Depends(http_bearer),
+        token: HTTPAuthorizationCredentials = Depends(http_bearer),
 ) -> CurrentUser:
-    secret_key = os.getenv("SECRET_KEY", "your-super-secret-key")
-    algorithm = os.getenv("ALGORITHM", "HS256")
+    secret_key = settings.SECRET_KEY
+    algorithm = settings.ALGORITHM
 
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -52,7 +50,6 @@ class NotificationClient:
 
     async def send_event(self, user_id: UUID, room_id: UUID):
         url = f"{self.url}/notification/v1/event/create_room"
-        print(f"{url=}")
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, json={
@@ -69,7 +66,9 @@ class NotificationClient:
             logger.error(f"Unexpected error in auth client: {str(e)}")
             return None
 
+
 notification_client = NotificationClient()
+
 
 def get_notification_client() -> NotificationClient:
     return notification_client

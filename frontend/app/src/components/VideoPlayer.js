@@ -1,4 +1,3 @@
-// src/components/VideoPlayer.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactPlayer from 'react-player';
 import { videoAction, getVideoState } from '../api/rooms';
@@ -29,7 +28,6 @@ const VideoPlayer = ({ sessionId, username }) => {
   }, [sessionId]);
 
   const handleVideoEvent = useCallback((data) => {
-    console.log('Video event:', data);
 
     if (data.username === username) return;
 
@@ -58,12 +56,10 @@ const VideoPlayer = ({ sessionId, username }) => {
   }, [username]);
 
   const handleUserJoined = useCallback((data) => {
-    console.log('User joined:', data);
     setUsers(prev => [...prev, data.username]);
   }, []);
 
   const handleUserLeft = useCallback((data) => {
-    console.log('User left:', data);
     setUsers(prev => prev.filter(u => u !== data.username));
   }, []);
 

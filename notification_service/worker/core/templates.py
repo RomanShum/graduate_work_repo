@@ -41,7 +41,6 @@ class CreatedRoom(PersonalizedMessage):
         self.additional_data = additional_data
 
     def get_message(self):
-        print(self.additional_data)
         return f"ID комнаты для подключения: {self.additional_data.get("room_id")}!"
 
 

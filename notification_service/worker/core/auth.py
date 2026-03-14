@@ -14,7 +14,6 @@ class Auth:
 
     async def get_user_data(self, user_id: UUID):
         url = f"{self.url}/{user_id}"
-        print(url)
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as response:

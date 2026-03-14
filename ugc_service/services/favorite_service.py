@@ -40,5 +40,4 @@ async def delete_favorite( user_id: UUID, film_id: UUID) -> bool:
 
 async def get_users_for_film(film_id: UUID) -> List[UUID]:
     favorites = await Favorite.find(Favorite.film_id == film_id).to_list()
-    print(favorites)
     return [fav.user_id for fav in favorites]

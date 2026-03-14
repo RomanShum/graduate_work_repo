@@ -21,24 +21,17 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-# Наши таблицы - которые мы разрешаем изменять
 OUR_TABLES = {
-    'room',  # обратите внимание на множественное число!
+    'room',
     'user_room',
-    'chat_message',  # множественное число
+    'chat_message',
     'friend',
-    'video_action',  # множественное число
+    'video_action',
     'app_version'
 }
 
 
 def include_object(object, name, type_, reflected, compare_to):
-    """
-    Критически важная функция для защиты чужих таблиц!
-    Определяет, какие объекты БД включать в миграции.
-    """
-
-    # Всегда включаем нашу таблицу версий
     if name == 'app_version':
         return True
 
@@ -48,8 +41,6 @@ def include_object(object, name, type_, reflected, compare_to):
         if name in OUR_TABLES:
             return True
         else:
-            # Логируем, что игнорируем чужую таблицу
-            print(f"🔒 Игнорируем чужую таблицу: {name}")
             return False
 
     # Для колонок - проверяем родительскую таблицу
@@ -66,11 +57,9 @@ def include_object(object, name, type_, reflected, compare_to):
 
     # Для внешних ключей
     if type_ == 'foreign_key_constraint':
-        # Проверяем, что обе таблицы наши
         if (object.table.name in OUR_TABLES and
                 object.referred_table in OUR_TABLES):
             return True
-        print(f"🔒 Игнорируем FK между чужими таблицами: {name}")
         return False
 
     # Для схем, последовательностей и т.д.

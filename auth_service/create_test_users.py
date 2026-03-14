@@ -1,7 +1,6 @@
 import asyncio
 import random
 import sys
-from typing import Iterable
 
 import typer
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine

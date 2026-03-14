@@ -1,4 +1,3 @@
-// src/components/SessionControls.js
 import React, { useState, useEffect } from 'react';
 import { createRoom, joinRoom, getFilms, getFriends } from '../api/rooms';
 
@@ -6,7 +5,7 @@ const SessionControls = ({ onSessionJoined, username }) => {
   const [roomId, setRoomId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [mode, setMode] = useState('create'); // 'create' or 'join'
+  const [mode, setMode] = useState('create');
   const [films, setFilms] = useState([]);
   const [selectedFilmId, setSelectedFilmId] = useState('');
   const [friends, setFriends] = useState([]);
@@ -54,7 +53,6 @@ const SessionControls = ({ onSessionJoined, username }) => {
 
     try {
       const room = await createRoom(selectedFilmId);
-      console.log('✅ Room created:', room);
       onSessionJoined(room.id, username);
     } catch (err) {
       setError('Ошибка при создании комнаты. Проверьте подключение к серверу.');
@@ -75,7 +73,6 @@ const SessionControls = ({ onSessionJoined, username }) => {
 
     try {
       const room = await joinRoom(roomId);
-      console.log('✅ Room joined:', room);
       onSessionJoined(roomId, username);
     } catch (err) {
       if (err.response?.status === 404) {

@@ -1,14 +1,16 @@
-# routes/ws.py
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from typing import Dict, Set
 import json
 from datetime import datetime
-import os
+import logging
+from core.settings import Settings
 
 import jwt
 from jwt import PyJWTError
 
 router = APIRouter(prefix="/ws", tags=["websocket"])
+settings = Settings()
+logger = logging.getLogger(__name__)
 
 
 class ConnectionManager:
@@ -25,8 +27,7 @@ class ConnectionManager:
         self.active_connections[room_id].add(websocket)
         self.connection_users[websocket] = username
 
-        print(f"✅ WebSocket подключен: {username} в комнате {room_id}")
-
+        logger.info(f"WebSocket подключен: {username} в комнате {room_id}")
         # Отправляем подтверждение
         await websocket.send_json({
             "type": "connection_established",
@@ -56,8 +57,7 @@ class ConnectionManager:
 
         if websocket in self.connection_users:
             del self.connection_users[websocket]
-
-        print(f"❌ WebSocket отключен: {username} из комнаты {room_id}")
+        logger.info(f"WebSocket отключен: {username} из комнаты {room_id}")
 
     async def broadcast_to_room(self, room_id: str, message: dict, exclude: WebSocket = None):
         """Отправить сообщение всем в комнате"""
@@ -69,7 +69,7 @@ class ConnectionManager:
                 try:
                     await connection.send_json(message)
                 except Exception as e:
-                    print(f"Ошибка отправки: {e}")
+                    logger.error(f"Ошибка отправки: {e}")
                     disconnected.add(connection)
 
             # Очищаем отключившиеся соединения
@@ -82,10 +82,9 @@ manager = ConnectionManager()
 
 @router.websocket("/{room_id}/{username}")
 async def websocket_endpoint(websocket: WebSocket, room_id: str, username: str):
-    # Аутентификация по JWT-токену из query-параметра ?token=
     token = websocket.query_params.get("token")
-    secret_key = os.getenv("SECRET_KEY", "your-super-secret-key")
-    algorithm = os.getenv("ALGORITHM", "HS256")
+    secret_key = settings.SECRET_KEY
+    algorithm = settings.ALGORITHM
 
     if not token:
         await websocket.close(code=1008)
@@ -99,8 +98,6 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, username: str):
     except PyJWTError:
         await websocket.close(code=1008)
         return
-
-    # Используем логин пользователя как имя в комнате, если оно не передано
     username = username or login
 
     await manager.connect(websocket, room_id, username)
@@ -111,7 +108,7 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, username: str):
             data = await websocket.receive_text()
             message = json.loads(data)
 
-            print(f"📨 Получено от {username}: {message.get('type')}")
+            logger.info(f"Получено от {username}: {message.get('type')}")
 
             # Добавляем метаданные
             message["username"] = username
@@ -155,5 +152,5 @@ async def websocket_endpoint(websocket: WebSocket, room_id: str, username: str):
             }
         )
     except Exception as e:
-        print(f"Ошибка WebSocket: {e}")
+        logger.error(f"Ошибка WebSocket: {e}")
         manager.disconnect(websocket, room_id)
