@@ -2,12 +2,12 @@ import os
 from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 _engine: AsyncEngine | None = None
 _session_factory: sessionmaker | None = None
 
+Base = declarative_base()
 
 def _build_database_url() -> str:
   user = os.getenv("POSTGRES_USER", "postgres")

@@ -1,0 +1,142 @@
+from logging.config import fileConfig
+import asyncio
+from sqlalchemy import engine_from_config
+from sqlalchemy import pool
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import async_engine_from_config
+
+from alembic import context
+from db import Base
+from core.settings import settings
+from models.entity import Room, UserRoom, ChatMessage, Friend, VideoAction
+
+# this is the Alembic Config object, which provides
+# access to the values within the .ini file in use.
+config = context.config
+
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+target_metadata = Base.metadata
+
+# Наши таблицы - которые мы разрешаем изменять
+OUR_TABLES = {
+    'room',  # обратите внимание на множественное число!
+    'user_room',
+    'chat_message',  # множественное число
+    'friend',
+    'video_action',  # множественное число
+    'app_version'
+}
+
+
+def include_object(object, name, type_, reflected, compare_to):
+    """
+    Критически важная функция для защиты чужих таблиц!
+    Определяет, какие объекты БД включать в миграции.
+    """
+
+    # Всегда включаем нашу таблицу версий
+    if name == 'app_version':
+        return True
+
+    # Для таблиц
+    if type_ == 'table':
+        # Разрешаем только наши таблицы
+        if name in OUR_TABLES:
+            return True
+        else:
+            # Логируем, что игнорируем чужую таблицу
+            print(f"🔒 Игнорируем чужую таблицу: {name}")
+            return False
+
+    # Для колонок - проверяем родительскую таблицу
+    if type_ == 'column':
+        if object.table.name in OUR_TABLES:
+            return True
+        return False
+
+    # Для индексов
+    if type_ == 'index':
+        if object.table.name in OUR_TABLES:
+            return True
+        return False
+
+    # Для внешних ключей
+    if type_ == 'foreign_key_constraint':
+        # Проверяем, что обе таблицы наши
+        if (object.table.name in OUR_TABLES and
+                object.referred_table in OUR_TABLES):
+            return True
+        print(f"🔒 Игнорируем FK между чужими таблицами: {name}")
+        return False
+
+    # Для схем, последовательностей и т.д.
+    if type_ in ('schema', 'sequence', 'view'):
+        return False
+
+    # По умолчанию - не включаем
+    return False
+
+
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode."""
+    url = config.get_main_option("sqlalchemy.url")
+
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        include_object=include_object,  # Используем include_object вместо include_names!
+        version_table='app_version',
+        compare_type=False,  # Не сравниваем типы чужих колонок
+        compare_server_default=False,  # Не сравниваем дефолты
+        include_schemas=False
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def do_run_migrations(connection: Connection) -> None:
+    """Run migrations in 'online' mode with connection."""
+
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_object=include_object,  # Используем include_object вместо include_names!
+        version_table='app_version',
+        compare_type=False,
+        compare_server_default=False,
+        include_schemas=False
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+async def run_async_migrations() -> None:
+    """Run migrations asynchronously."""
+    connectable = async_engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
+
+    await connectable.dispose()
+
+
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
+    asyncio.run(run_async_migrations())
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()

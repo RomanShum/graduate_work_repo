@@ -28,7 +28,7 @@ const Chat = ({ sessionId, username }) => {
     setMessages(prev => {
       // Проверяем, нет ли уже такого сообщения (чтобы избежать дубликатов)
       const exists = prev.some(m =>
-        m.timestamp === data.timestamp &&
+        m.created_at === data.created_at &&
         m.username === data.username &&
         m.message === data.message
       );
@@ -41,7 +41,7 @@ const Chat = ({ sessionId, username }) => {
       return [...prev, {
         username: data.username,
         message: data.message,
-        timestamp: data.timestamp || new Date().toISOString()
+        created_at: data.created_at || new Date().toISOString()
       }];
     });
   }, []);
@@ -126,7 +126,7 @@ const Chat = ({ sessionId, username }) => {
 
     try {
       // 1. Отправляем через HTTP для сохранения в истории
-      const savedMessage = await sendChatMessage(sessionId, username, messageText);
+      const savedMessage = await sendChatMessage(sessionId, messageText);
       console.log('Message saved via HTTP:', savedMessage);
 
       // 2. Отправляем через WebSocket для real-time
