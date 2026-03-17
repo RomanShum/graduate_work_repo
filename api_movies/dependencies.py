@@ -3,7 +3,6 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import jwt
 from jwt import PyJWTError
 from pydantic import BaseModel
-import aiohttp
 from core.settings import Settings
 import logging
 

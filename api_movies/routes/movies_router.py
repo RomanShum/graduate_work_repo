@@ -1,9 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from sqlalchemy import text
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-import httpx
-from sqlalchemy.future import select
 from dependencies import CurrentUser, get_current_user
 from db import get_session
 

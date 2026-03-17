@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.movies_router import router
-import uvicorn
 
 from db import init_engine, close_engine
 

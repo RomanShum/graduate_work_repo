@@ -1,11 +1,10 @@
 import uuid
 from enum import Enum
 
-from sqlalchemy import Boolean, Column, DateTime, String, ForeignKey, Float, Enum as EnumSQL
+from sqlalchemy import Column, DateTime, String, Float, Enum as EnumSQL
 from sqlalchemy.dialects.postgresql import UUID
 
 from db import Base
-from sqlalchemy.orm import relationship
 from datetime import datetime
 
 

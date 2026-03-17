@@ -6,7 +6,6 @@ import httpx
 from models.entity import Room, UserRoom, ChatMessage, Friend
 
 from dependencies import CurrentUser, notification_client, NotificationClient
-from models.entity import Room
 import logging
 from core.settings import Settings
 from enum import Enum
