@@ -1,12 +1,11 @@
-# main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import rooms_router, ws_router
+from routes.movies_router import router
 import uvicorn
 
 from db import init_engine, close_engine
 
-app = FastAPI(title="Кино вместе API", version="1.0.0")
+app = FastAPI(title="API movies", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,13 +21,12 @@ app.add_middleware(
 )
 
 # Подключаем роутеры
-app.include_router(rooms_router)
-app.include_router(ws_router)
+app.include_router(router, prefix="/api")
 
 
 @app.get("/")
 async def root():
-    return {"message": "Кино вместе API", "status": "running"}
+    return {"message": "API movies", "status": "running"}
 
 
 @app.get("/api/health")
@@ -39,6 +37,9 @@ async def health_check():
 @app.on_event("startup")
 async def startup_event():
     await init_engine()
+    print("=== ЗАРЕГИСТРИРОВАННЫЕ МАРШРУТЫ ===")
+    for route in app.routes:
+        print(f"Путь: {route.path}, Методы: {getattr(route, 'methods', 'N/A')}")
 
 
 @app.on_event("shutdown")

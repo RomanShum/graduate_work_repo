@@ -157,6 +157,17 @@ services:
       - cinema_db
     networks:
       - app_network
+  api_movies:
+    build: ./api_movies
+    container_name: api_movies
+    env_file:
+      - ./.env
+    volumes:
+      - ./api_movies:/opt/app
+    depends_on:
+      - cinema_db
+    networks:
+      - app_network
   mailhog:
     image: mailhog/mailhog
     container_name: mailhog

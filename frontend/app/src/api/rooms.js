@@ -100,8 +100,8 @@ export const getVideoState = async (roomId) => {
 
 export const getFilms = async () => {
   try {
-    const response = await apiClient.get('/api/rooms/films');
-    return response.data;
+    const response = await apiClient.get('/api/films/');
+    return response.data.films;
   } catch (error) {
     console.error('Error getting films:', error);
     return [];

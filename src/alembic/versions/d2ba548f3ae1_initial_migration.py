@@ -1,8 +1,8 @@
-"""init
+"""initial_migration
 
-Revision ID: 97b269d37c4d
+Revision ID: d2ba548f3ae1
 Revises: 
-Create Date: 2026-03-13 22:29:31.300912
+Create Date: 2026-03-16 16:57:23.499054
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '97b269d37c4d'
+revision: str = 'd2ba548f3ae1'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -35,7 +35,6 @@ def upgrade() -> None:
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('creator', sa.UUID(), nullable=False),
     sa.Column('film_id', sa.UUID(), nullable=False),
-    sa.Column('video_url', sa.String(length=255), nullable=False),
     sa.Column('is_playing', sa.Boolean(), nullable=True),
     sa.Column('current_time', sa.Float(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
