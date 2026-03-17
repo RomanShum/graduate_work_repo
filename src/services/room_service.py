@@ -21,7 +21,8 @@ class ActionEnum(Enum):
     seek = "seek"
 
 
-async def create_room_service(db: AsyncSession, current_user: CurrentUser, film_id: str, notification_client: NotificationClient):
+async def create_room_service(db: AsyncSession, current_user: CurrentUser, film_id: str,
+                              notification_client: NotificationClient):
     room = Room(
         creator=current_user.id,
         film_id=film_id

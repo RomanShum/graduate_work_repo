@@ -12,6 +12,7 @@ from services import movies_service
 
 router = APIRouter(tags=["films"])
 
+
 @router.get("/films/", response_model=ResponseFilmList)
 async def list_films(
         limit: int = 50,

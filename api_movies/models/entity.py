@@ -8,8 +8,10 @@ from db import Base
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
+
 class TypeEnum(Enum):
     movie = "movie"
+
 
 class FilmWork(Base):
     __tablename__ = 'film_work'
